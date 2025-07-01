@@ -23,8 +23,13 @@ def filter_summary(data):
     cutoff = datetime.datetime.now() - datetime.timedelta(days=limit_days)
     return [row for row in data if datetime.datetime.fromisoformat(row['timestamp']) >= cutoff]
 
-# --- Load + Filter ---
+# --- Load + Validate + Filter ---
 raw = get_topic_summary_supabase(raw=True)
+
+if not isinstance(raw, list) or not raw or not all("topic" in r and "is_correct" in r for r in raw):
+    st.error("❌ Error: Unexpected data format from Supabase.")
+    st.stop()
+
 data = filter_summary(raw)
 
 if not data:
@@ -37,7 +42,9 @@ summary = df.groupby("topic").agg(
     total=("is_correct", "count"),
     correct=("is_correct", "sum")
 ).reset_index()
-summary["Accuracy (%)"] = (summary["correct"] / summary["total"] * 100).round(1)
+summary["Accuracy (%)"] = (
+    summary.apply(lambda row: (row["correct"] / row["total"] * 100) if row["total"] > 0 else 0, axis=1)
+).round(1)
 
 st.dataframe(summary.rename(columns={"topic": "Topic"}), use_container_width=True)
 
@@ -57,6 +64,7 @@ fig, ax = plt.subplots()
 ax.barh(summary["topic"], summary["Accuracy (%)"], color="skyblue")
 ax.set_xlabel("Accuracy (%)")
 ax.set_xlim(0, 100)
+ax.tick_params(axis='y', labelsize=10)
 st.pyplot(fig)
 
 # --- Chart: Total Questions Answered ---
@@ -64,6 +72,7 @@ st.subheader("📈 Total Questions Answered")
 fig2, ax2 = plt.subplots()
 ax2.bar(summary["topic"], summary["total"], color="lightgreen")
 ax2.set_ylabel("Total Answered")
+ax2.tick_params(axis='x', labelrotation=45)
 st.pyplot(fig2)
 
 # --- Download CSV ---
