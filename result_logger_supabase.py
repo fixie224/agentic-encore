@@ -1,6 +1,5 @@
 import requests
 from datetime import datetime
-import os
 import streamlit as st
 
 # --- CONFIG ---
@@ -26,26 +25,29 @@ def log_result_supabase(question_id, topic, is_correct, time_taken):
     if res.status_code not in (200, 201):
         print("Error logging result:", res.text)
 
-# --- GET TOPIC SUMMARY ---
-def get_topic_summary_supabase():
-    url = f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}?select=topic,is_correct"
+# --- GET TOPIC SUMMARY (WITH OPTIONAL RAW) ---
+def get_topic_summary_supabase(raw=False):
+    url = f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}?select=topic,is_correct,timestamp"
     res = requests.get(url, headers=HEADERS)
     if res.status_code != 200:
         print("Error fetching summary:", res.text)
         return []
 
     data = res.json()
+    if raw:
+        return data
+
     summary = {}
     for row in data:
         topic = row['topic']
         if topic not in summary:
             summary[topic] = {"total": 0, "correct": 0}
         summary[topic]["total"] += 1
-        if row['is_correct']:
+        if row["is_correct"]:
             summary[topic]["correct"] += 1
 
-    return [(t, v['total'], v['correct']) for t, v in summary.items()]
+    return [(t, v["total"], v["correct"]) for t, v in summary.items()]
 
-# Optional placeholder to match app.py usage
+# --- PLACEHOLDER FOR app.py ---
 def init_db():
     pass

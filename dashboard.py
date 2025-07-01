@@ -1,40 +1,65 @@
 import streamlit as st
 import pandas as pd
-import sqlite3
-from result_logger_supabase import get_topic_summary_supabase as get_topic_summary
+import matplotlib.pyplot as plt
+import datetime
+from result_logger_supabase import get_topic_summary_supabase
 
 st.set_page_config(page_title="📊 Performance Dashboard", layout="centered")
-st.title("📊 Agentic Encore Performance Dashboard")
+st.title("📊 ENCOR Quiz Performance Dashboard")
 
-# Load data from SQLite
-def load_results():
-    conn = sqlite3.connect("data/results.db")
-    df = pd.read_sql_query("SELECT * FROM results ORDER BY timestamp DESC", conn)
-    conn.close()
-    return df
+# --- Date filter ---
+st.markdown("### 🗓️ Filter by Time Range")
+option = st.selectbox("Show results from:", ["All Time", "Last 7 Days", "Last 30 Days"])
 
-# Display topic summary
-def show_topic_summary():
+def filter_summary(data):
+    if option == "All Time":
+        return data
+    limit_days = 7 if option == "Last 7 Days" else 30
+    cutoff = datetime.datetime.now() - datetime.timedelta(days=limit_days)
+    return [row for row in data if datetime.datetime.fromisoformat(row['timestamp']) >= cutoff]
+
+raw = get_topic_summary_supabase(raw=True)
+data = filter_summary(raw)
+
+if not data:
+    st.warning("No data available for selected range. Try taking more quizzes.")
+else:
+    # Convert to DataFrame
+    df = pd.DataFrame(data)
+    summary = df.groupby("topic").agg(total=("is_correct", "count"), correct=("is_correct", "sum")).reset_index()
+    summary["Accuracy (%)"] = (summary["correct"] / summary["total"] * 100).round(1)
+
+    st.dataframe(summary.rename(columns={"topic": "Topic"}), use_container_width=True)
+
+    # Highest & lowest performing topics
+    st.markdown("---")
+    st.subheader("🥇 Top & Bottom Performance")
+    top = summary.sort_values("Accuracy (%)", ascending=False).head(1)
+    bottom = summary.sort_values("Accuracy (%)").head(1)
+
+    st.success(f"✅ Best Topic: **{top['topic'].values[0]}** ({top['Accuracy (%)'].values[0]}%)")
+    st.error(f"⚠️ Weakest Topic: **{bottom['topic'].values[0]}** ({bottom['Accuracy (%)'].values[0]}%)")
+
+    # Chart 1: Accuracy
+    st.markdown("---")
     st.subheader("✅ Accuracy by Topic")
-    rows = get_topic_summary()
-    if rows:
-        df = pd.DataFrame(rows, columns=["Topic", "Total Attempts", "Correct Answers"])
-        df["Accuracy %"] = (df["Correct Answers"] / df["Total Attempts"] * 100).round(1)
-        st.dataframe(df)
-    else:
-        st.info("No results logged yet.")
+    fig, ax = plt.subplots()
+    ax.barh(summary["topic"], summary["Accuracy (%)"], color="skyblue")
+    ax.set_xlabel("Accuracy (%)")
+    ax.set_xlim(0, 100)
+    st.pyplot(fig)
 
-# Display full result history
-def show_all_results():
-    st.subheader("📋 Full Attempt History")
-    df = load_results()
-    if df.empty:
-        st.info("No results to display.")
-    else:
-        df['timestamp'] = pd.to_datetime(df['timestamp']).dt.strftime("%Y-%m-%d %H:%M:%S")
-        st.dataframe(df)
+    # Chart 2: Total Questions
+    st.subheader("📈 Total Questions Answered")
+    fig2, ax2 = plt.subplots()
+    ax2.bar(summary["topic"], summary["total"], color="lightgreen")
+    ax2.set_ylabel("Total Answered")
+    st.pyplot(fig2)
 
-# UI Options
-show_topic_summary()
-st.divider()
-show_all_results()
+    # Export CSV
+    st.download_button(
+        label="📥 Download CSV Report",
+        data=summary.to_csv(index=False).encode('utf-8'),
+        file_name=f"encor_summary_{option.replace(' ', '_').lower()}.csv",
+        mime="text/csv"
+    )
