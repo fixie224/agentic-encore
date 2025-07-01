@@ -1,48 +1,78 @@
-import requests
-from datetime import datetime
-import os
+import streamlit as st
+import random
+import time
 import sys, os
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# --- CONFIG ---
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-TABLE_NAME = "results"
-HEADERS = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type": "application/json"
-}
+from question_bank import load_questions
+from quiz_logic import check_answer, get_explanation
+from result_logger_supabase import log_result_supabase, init_db
 
-# --- LOG RESULT TO SUPABASE ---
-def log_result_supabase(question_id, topic, is_correct, time_taken):
-    payload = {
-        "question_id": question_id,
-        "topic": topic,
-        "is_correct": is_correct,
-        "time_taken": time_taken,
-        "timestamp": datetime.now().isoformat()
-    }
-    res = requests.post(f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}", json=payload, headers=HEADERS)
-    if res.status_code not in (200, 201):
-        print("Error logging result:", res.text)
+init_db()
 
-# --- GET TOPIC SUMMARY ---
-def get_topic_summary_supabase():
-    url = f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}?select=topic,is_correct"
-    res = requests.get(url, headers=HEADERS)
-    if res.status_code != 200:
-        print("Error fetching summary:", res.text)
-        return []
+st.set_page_config(page_title='📝 Quiz Mode', layout='centered')
+st.title('🧠 Agentic AI – CCNP 350-401 Quiz')
 
-    data = res.json()
-    summary = {}
-    for row in data:
-        topic = row['topic']
-        if topic not in summary:
-            summary[topic] = {"total": 0, "correct": 0}
-        summary[topic]["total"] += 1
-        if row['is_correct']:
-            summary[topic]["correct"] += 1
+all_questions = load_questions()
+all_topics = sorted(set(q['topic'] for q in all_questions))
 
-    return [(t, v['total'], v['correct']) for t, v in summary.items()]
+# Topic filter
+if 'selected_topic' not in st.session_state:
+    st.session_state.selected_topic = "All"
+
+selected = st.selectbox("📂 Filter by Topic:", ["All"] + all_topics)
+if selected != st.session_state.selected_topic:
+    st.session_state.selected_topic = selected
+    st.rerun()
+
+filtered_questions = [q for q in all_questions if selected == "All" or q['topic'] == selected]
+random.shuffle(filtered_questions)
+
+if 'submitted' not in st.session_state:
+    st.session_state.submitted = {}
+if 'option_orders' not in st.session_state:
+    st.session_state.option_orders = {}
+
+score = 0
+
+for q in filtered_questions:
+    qid = q['id']
+    topic = q['topic']
+    st.markdown(f"### 📘 {topic}: {q['question']}")
+
+    opts = q['options']
+    if qid not in st.session_state.option_orders:
+        keys = list(opts.keys())
+        random.shuffle(keys)
+        st.session_state.option_orders[qid] = keys
+    else:
+        keys = st.session_state.option_orders[qid]
+
+    label_map = {f"{k}: {opts[k]}": k for k in keys}
+    disabled = st.session_state.submitted.get(qid, False)
+
+    selection = st.multiselect(
+        f"Select your answer (QID {qid})",
+        list(label_map.keys()),
+        key=f"ans_{qid}",
+        disabled=disabled
+    )
+
+    answer = [label_map[s] for s in selection]
+
+    if not disabled:
+        if st.button(f"Submit {qid}", key=f"btn_{qid}"):
+            st.session_state.submitted[qid] = True
+            correct = check_answer(answer, q['answer'])
+            if correct:
+                st.success("✅ Correct!")
+                score += 1
+            else:
+                st.error(f"❌ Incorrect. Answer: {', '.join(q['answer'])}")
+            with st.expander("💡 Explanation"):
+                st.write(get_explanation(q))
+            log_result_supabase(qid, topic, correct, time.time())
+
+st.markdown("---")
+st.markdown(f"### ✅ Final Score: {score} / {len(filtered_questions)}")
