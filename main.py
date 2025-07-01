@@ -15,12 +15,18 @@ with col1:
     if st.button("🧪 Exam Simulation"):
         st.switch_page("exam_sim.py")
 
+    if st.button("🧠 Flashcard Mode"):
+        st.switch_page("flashcard_mode.py")
+
 with col2:
     if st.button("🔎 Review Incorrect Questions"):
         st.switch_page("review_mode.py")
 
     if st.button("📊 Dashboard & Analytics"):
         st.switch_page("dashboard.py")
+
+    if st.button("🔬 Lab Simulation"):
+        st.switch_page("lab_sim.py")
 
 st.markdown("---")
 st.markdown("👨‍💻 Developed with ❤️ using Streamlit + Supabase")
