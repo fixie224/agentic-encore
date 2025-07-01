@@ -1,0 +1,92 @@
+questions:
+  - id: q1
+    topic: OSPF
+    question: |
+      Which two statements are true about OSPF areas? (Choose two)
+    options:
+      A: All OSPF routers must be in area 0
+      B: OSPF backbone area is area 0
+      C: Inter-area routing happens via area 0
+      D: Stub areas can redistribute external routes
+      E: OSPF does not support summarization
+    answer: [B, C]
+    explanation: |
+      Area 0 is the OSPF backbone area. All inter-area traffic must pass through area 0. External route redistribution is not allowed in stub areas.
+
+  - id: q2
+    topic: EIGRP
+    question: |
+      What is the EIGRP composite metric based on by default?
+    options:
+      A: Bandwidth and Delay
+      B: Bandwidth and MTU
+      C: Delay and Reliability
+      D: Load and MTU
+    answer: [A]
+    explanation: |
+      By default, EIGRP uses bandwidth and delay in its metric calculation. Reliability, load, and MTU are not used unless configured.
+
+  - id: q3
+    topic: OSPF
+    question: |
+      What type of OSPF router has interfaces in multiple areas?
+    options:
+      A: Backbone Router
+      B: Internal Router
+      C: ABR
+      D: ASBR
+    answer: [C]
+    explanation: |
+      An Area Border Router (ABR) has interfaces in multiple OSPF areas and is responsible for summarizing and redistributing routes between areas.
+
+  - id: q4
+    topic: Wireless
+    question: |
+      What is the function of the CAPWAP protocol in wireless networks?
+    options:
+      A: Encrypt user data traffic end-to-end
+      B: Provide tunneling between AP and WLC
+      C: Assign IP addresses to wireless clients
+      D: Facilitate VLAN trunking between switches
+    answer: [B]
+    explanation: |
+      CAPWAP encapsulates control and data traffic between the AP and the Wireless LAN Controller, enabling centralized management.
+
+  - id: q5
+    topic: Security
+    question: |
+      What does 802.1X provide in a wired network?
+    options:
+      A: IP addressing
+      B: Access control based on MAC address
+      C: Port-based authentication
+      D: Layer 3 encryption
+    answer: [C]
+    explanation: |
+      IEEE 802.1X provides port-based authentication using an authentication server (e.g., RADIUS) before network access is granted.
+
+  - id: q6
+    topic: Infrastructure Services
+    question: |
+      Which protocol is used by network devices to send alerts to a management station?
+    options:
+      A: Syslog
+      B: NTP
+      C: SNMP
+      D: DHCP
+    answer: [C]
+    explanation: |
+      SNMP allows network devices to send alerts (called traps) to a network management station for monitoring purposes.
+
+  - id: q7
+    topic: Automation
+    question: |
+      What data format is commonly used in RESTCONF and is human-readable?
+    options:
+      A: XML
+      B: CSV
+      C: JSON
+      D: YAML
+    answer: [C]
+    explanation: |
+      JSON (JavaScript Object Notation) is widely used in RESTCONF for configuration and state data exchange and is human-readable.
