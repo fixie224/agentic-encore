@@ -1,6 +1,11 @@
 import streamlit as st
 import random
 import time
+import sys, os
+
+# Fix import if run from /pages
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from question_bank import load_questions
 from quiz_logic import check_answer, get_explanation
 from result_logger_supabase import get_topic_summary_supabase
