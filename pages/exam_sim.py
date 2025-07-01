@@ -4,6 +4,8 @@ import time
 from question_bank import load_questions
 from quiz_logic import check_answer
 from result_logger_supabase import log_result_supabase
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 st.set_page_config(page_title="📝 ENCOR Exam Simulator", layout="centered")
 st.title("📝 CCNP 350-401 ENCOR – Full Exam Simulation")

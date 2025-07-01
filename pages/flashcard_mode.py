@@ -1,6 +1,8 @@
 import streamlit as st
 from question_bank import load_questions
 import random
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 st.set_page_config(page_title="🧠 Flashcard Mode", layout="centered")
 st.title("🧠 Flashcard Study Mode")

@@ -3,6 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import datetime
 from result_logger_supabase import get_topic_summary_supabase
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 st.set_page_config(page_title="📊 Performance Dashboard", layout="centered")
 st.title("📊 ENCOR Quiz Performance Dashboard")

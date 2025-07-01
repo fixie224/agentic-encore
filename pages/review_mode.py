@@ -2,6 +2,8 @@ import streamlit as st
 import random
 import time
 import sys, os
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Fix import if run from /pages
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
