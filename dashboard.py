@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
-from result_logger import get_topic_summary
+from result_logger_supabase import get_topic_summary_supabase as get_topic_summary
 
 st.set_page_config(page_title="📊 Performance Dashboard", layout="centered")
 st.title("📊 Agentic Encore Performance Dashboard")

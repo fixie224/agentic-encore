@@ -2,7 +2,7 @@ import streamlit as st
 import sqlite3
 from question_bank import load_questions
 from quiz_logic import check_answer, get_explanation
-from result_logger import init_db
+from result_logger_supabase import init_db
 
 st.set_page_config(page_title="🔁 Review Mode", layout="centered")
 st.title("🔁 Agentic Encore – Review Incorrect Answers")

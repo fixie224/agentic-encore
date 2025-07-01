@@ -1,10 +1,11 @@
 import requests
 from datetime import datetime
 import os
+import streamlit as st
 
 # --- CONFIG ---
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 TABLE_NAME = "results"
 HEADERS = {
     "apikey": SUPABASE_KEY,
@@ -44,3 +45,7 @@ def get_topic_summary_supabase():
             summary[topic]["correct"] += 1
 
     return [(t, v['total'], v['correct']) for t, v in summary.items()]
+
+# Optional placeholder to match app.py usage
+def init_db():
+    pass

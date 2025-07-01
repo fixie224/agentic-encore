@@ -1,2 +1,5 @@
 streamlit
 pyyaml
+streamlit
+requests
+pyyaml
