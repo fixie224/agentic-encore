@@ -10,23 +10,23 @@ col1, col2 = st.columns(2)
 
 with col1:
     if st.button("📝 Quiz Mode"):
-        st.switch_page("app.py")
+        st.switch_page("app.py")  # ✅ app.py is in root
 
     if st.button("🧪 Exam Simulation"):
-        st.switch_page("exam_sim.py")
+        st.switch_page("pages/exam_sim.py")
 
     if st.button("🧠 Flashcard Mode"):
-        st.switch_page("flashcard_mode.py")
+        st.switch_page("pages/flashcard_mode.py")
 
 with col2:
     if st.button("🔎 Review Incorrect Questions"):
-        st.switch_page("review_mode.py")
+        st.switch_page("pages/review_mode.py")
 
     if st.button("📊 Dashboard & Analytics"):
-        st.switch_page("dashboard.py")
+        st.switch_page("pages/dashboard.py")
 
     if st.button("🔬 Lab Simulation"):
-        st.switch_page("lab_sim.py")
+        st.switch_page("pages/lab_sim.py")
 
 st.markdown("---")
-st.markdown("👨‍💻 Developed with ❤️ using Streamlit + Supabase")
+st.markdown("👨‍💻 Fizi Developed using Streamlit + Supabase")

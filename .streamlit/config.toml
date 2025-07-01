@@ -3,6 +3,5 @@ base = "light"
 
 [server]
 headless = true
-
-[client]
-showSidebarNavigation = false
+port = 8501
+enableXsrfProtection = false
