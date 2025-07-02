@@ -4,10 +4,11 @@ import matplotlib.pyplot as plt
 import datetime
 import sys, os
 
-# Fix import path if run from pages/
+# Fix import path (if needed when running inside /pages)
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from result_logger_supabase import get_topic_summary_supabase
 
+# --- CONFIG ---
 st.set_page_config(page_title="📊 Performance Dashboard", layout="centered")
 st.title("📊 ENCOR Quiz Performance Dashboard")
 

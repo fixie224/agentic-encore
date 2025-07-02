@@ -1,90 +1,47 @@
 import streamlit as st
+from result_logger_supabase import get_all_results_supabase
 import random
-import sys, os
 
-# Fix path to import shared modules from root
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+st.set_page_config(page_title="🔁 Review Mode", layout="centered")
+st.title("🔁 Review Your Mistakes")
 
-from question_bank import load_questions
-from quiz_logic import check_answer, get_explanation
-from result_logger_supabase import get_topic_summary_supabase
-
-st.set_page_config(page_title='🔁 Review Mode', layout='centered')
-st.title("🔁 Review Incorrect Questions")
-
-# --- Load all questions ---
-all_questions = load_questions()
-
-# --- Load incorrect answers from Supabase ---
-raw_data = get_topic_summary_supabase(raw=True)
-wrong_by_topic = {}
-for row in raw_data:
-    if not row['is_correct']:
-        topic = row['topic']
-        wrong_by_topic[topic] = wrong_by_topic.get(topic, 0) + 1
-
-if not wrong_by_topic:
-    st.success("🎉 No incorrect answers logged. You're doing great!")
+# --- Load all results ---
+results = get_all_results_supabase()
+if not results:
+    st.warning("No results available for review.")
     st.stop()
 
-# --- Select topic to review ---
-sorted_weak = sorted(wrong_by_topic.items(), key=lambda x: x[1], reverse=True)
-weak_topics = [t for t, _ in sorted_weak]
-selected_topic = st.selectbox("📂 Select a weak topic to review:", weak_topics)
-
-# --- Filter only incorrect questions from that topic ---
-wrong_ids = [
-    row['question_id']
-    for row in raw_data
-    if not row['is_correct'] and row['topic'] == selected_topic
-]
-questions = [q for q in all_questions if q['id'] in wrong_ids and q['topic'] == selected_topic]
-
-if not questions:
-    st.info("✅ No questions to retry for this topic.")
+# --- Filter only incorrect answers ---
+wrong_results = [r for r in results if not r.get("is_correct", True)]
+if not wrong_results:
+    st.success("Well done! You have no incorrect answers to review.")
     st.stop()
 
-random.shuffle(questions)
+# --- Shuffle wrong answers ---
+random.shuffle(wrong_results)
 
-# --- Init session state ---
-if 'review_submitted' not in st.session_state:
-    st.session_state.review_submitted = {}
+# --- Review each ---
+if "review_index" not in st.session_state:
+    st.session_state.review_index = 0
 
-score = 0
+index = st.session_state.review_index
+q = wrong_results[index]
 
-# --- Question Loop ---
-for q in questions:
-    qid = q['id']
-    st.markdown(f"### 🔁 Review: {q['question']}")
+st.markdown(f"**Topic:** `{q.get('topic', 'Unknown')}`")
+st.markdown(f"**Question:** {q.get('question', 'No question')}")
+options = q.get("options", {})
 
-    opts = q['options']
-    option_keys = list(opts.keys())
-    random.shuffle(option_keys)
-    label_map = {f"{k}: {opts[k]}": k for k in option_keys}
+selected = st.radio("Your Options", list(options.items()), format_func=lambda x: f"{x[0]}. {x[1]}")
+st.markdown(f"**Correct Answer:** {', '.join(q.get('answer', []))}")
+st.info(q.get("explanation", "No explanation provided."))
 
-    disabled = st.session_state.review_submitted.get(qid, False)
+# --- Navigation ---
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("⬅️ Previous") and index > 0:
+        st.session_state.review_index -= 1
+with col2:
+    if st.button("➡️ Next") and index < len(wrong_results) - 1:
+        st.session_state.review_index += 1
 
-    selection = st.multiselect(
-        f"Choose your answer (QID: {qid})",
-        list(label_map.keys()),
-        key=f"review_{qid}",
-        disabled=disabled
-    )
-
-    user_answer = [label_map[s] for s in selection]
-
-    if not disabled:
-        if st.button(f"Submit Answer {qid}", key=f"submit_{qid}"):
-            st.session_state.review_submitted[qid] = True
-            correct = check_answer(user_answer, q['answer'])
-            if correct:
-                st.success("✅ Correct!")
-                score += 1
-            else:
-                st.error(f"❌ Incorrect. Correct answer: {', '.join(q['answer'])}")
-            with st.expander("💡 Explanation"):
-                st.write(get_explanation(q))
-
-# --- Final Review Score ---
-st.markdown("---")
-st.success(f"🧠 Review Score for {selected_topic}: {score} / {len(questions)}")
+st.markdown(f"Question {index + 1} of {len(wrong_results)}")

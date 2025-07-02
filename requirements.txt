@@ -5,3 +5,4 @@ matplotlib
 openai
 pandas
 supabase
+supabase-py

@@ -1,51 +1,31 @@
-import openai
-import requests
-import uuid
-import datetime
-import os
+from openai import OpenAI
 import streamlit as st
 
-# --- CONFIG ---
-SUPABASE_URL = st.secrets["SUPABASE_URL"]
-SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
-SUPABASE_TABLE = "gpt_questions"
-HEADERS = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type": "application/json"
-}
+# Init OpenAI client
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# --- GENERATE CCNP QUESTION FROM GPT ---
-def generate_gpt_question(topic="Mixed"):
-    prompt = f"""
-    Generate a CCNP 350-401 ENCOR multiple-choice question in JSON format.
-    - Include: id (uuid), topic, question, options (A-D), answer (list), explanation.
-    - Format strictly as JSON.
-    - Topic: {topic if topic != 'Mixed' else 'random'}.
-    """
-
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": "You are a certified Cisco instructor."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.7
+def generate_encor_question_v1(topic: str = "IP Routing", difficulty: str = "medium") -> dict:
+    prompt = (
+        f"Buat satu soalan pilihan ganda gaya CCNP ENCOR 350-401 tentang topik '{topic}' "
+        f"dengan tahap kesukaran '{difficulty}'. Sertakan 4 pilihan jawapan (A-D), "
+        f"jawapan betul (boleh satu atau lebih), dan penjelasan. Formatkan output dalam JSON:\n\n"
+        "{\n"
+        '  "question": "Soalan anda...",\n'
+        '  "options": {"A": "...", "B": "...", "C": "...", "D": "..."},\n'
+        '  "answer": ["B"],\n'
+        '  "explanation": "Penjelasan jawapan",\n'
+        '  "topic": "' + topic + '"\n'
+        '}'
     )
 
-    content = response['choices'][0]['message']['content']
     try:
-        data = eval(content) if isinstance(content, str) else content
-        if 'id' not in data:
-            data['id'] = str(uuid.uuid4())
-        return data
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+        )
+        content = response.choices[0].message.content
+        return eval(content) if isinstance(content, str) else content
     except Exception as e:
-        print("❌ Error parsing GPT output:", e)
-        return None
-
-# --- STORE TO SUPABASE ---
-def log_gpt_question(data):
-    data['timestamp'] = datetime.datetime.now().isoformat()
-    res = requests.post(f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}", json=data, headers=HEADERS)
-    if res.status_code not in (200, 201):
-        print("❌ Supabase log error:", res.text)
+        st.error(f"Error generating question: {e}")
+        return {}

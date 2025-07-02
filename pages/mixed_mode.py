@@ -1,83 +1,68 @@
 import streamlit as st
-import random, time
-import openai
-import os, sys
-from question_bank import load_questions
-from quiz_logic import check_answer, get_explanation
+import random
+from gpt_generator import generate_encor_question_v1
 from result_logger_supabase import log_result_supabase
 
-# Ensure OpenAI key exists
-openai.api_key = st.secrets.get("OPENAI_API_KEY")
+st.set_page_config(page_title="🧠 Mixed Mode", layout="centered")
+st.title("🧠 Mixed Quiz Mode")
 
-# --- CONFIG ---
-st.set_page_config(page_title="Mixed Mode Quiz", layout="centered")
-st.title("🧠 Mixed Mode: Static + GPT Questions")
+# Load static questions (replace with your real static question bank)
+static_questions = [
+    {
+        "question_id": "q1",
+        "question": "Which protocol is used to encapsulate PPP frames in Ethernet frames?",
+        "options": {"A": "PPP over Ethernet", "B": "L2TP", "C": "GRE", "D": "MPLS"},
+        "answer": ["A"],
+        "explanation": "PPP over Ethernet (PPPoE) is the correct encapsulation method."
+    },
+    {
+        "question_id": "q2",
+        "question": "What is the purpose of LSA type 1 in OSPF?",
+        "options": {"A": "Summarize external routes", "B": "Advertise local router's interfaces", "C": "Advertise default route", "D": "Summarize inter-area routes"},
+        "answer": ["B"],
+        "explanation": "LSA type 1 advertises directly connected interfaces of the router."
+    },
+]
 
 # --- Session Init ---
-if 'mode' not in st.session_state:
-    st.session_state.mode = 'mixed'
-if 'shuffled_questions' not in st.session_state:
-    all_qs = load_questions()
-    random.shuffle(all_qs)
-    st.session_state.shuffled_questions = all_qs
-if 'question_index' not in st.session_state:
-    st.session_state.question_index = 0
-if 'score' not in st.session_state:
-    st.session_state.score = 0
+if "mode" not in st.session_state:
+    st.session_state.mode = random.choices(["static", "gpt"], weights=[0.8, 0.2])[0]
+    st.session_state.current_question = None
+    st.session_state.answered = False
 
-# --- Select 80% Static + 20% GPT ---
-static_pool = st.session_state.shuffled_questions
-use_gpt = (st.session_state.question_index + 1) % 5 == 0
+# --- Load Question ---
+if not st.session_state.current_question:
+    if st.session_state.mode == "static":
+        st.session_state.current_question = random.choice(static_questions)
+    else:
+        st.session_state.current_question = generate_encor_question_v1("OSPF")  # Replace with topic selector
 
-# --- Display Question ---
-if use_gpt:
-    st.info("📡 GPT-Generated Question")
-    topic = "Routing"
-    prompt = f"Generate a CCNP ENCOR multiple choice question on the topic: {topic}. Include 1 correct and 3 incorrect options."
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": "You are a Cisco Certified trainer."},
-            {"role": "user", "content": prompt}
-        ]
+q = st.session_state.current_question
+st.write("#### Question:", q["question"])
+
+# --- Display Options ---
+selected = st.radio("Choose one:", list(q["options"].keys()), format_func=lambda x: f"{x}: {q['options'][x]}", index=0, disabled=st.session_state.answered)
+
+# --- Submit ---
+if st.button("Submit Answer") and not st.session_state.answered:
+    is_correct = selected in q["answer"]
+    st.session_state.answered = True
+    log_result_supabase(
+        question_id=q.get("question_id", "gpt-q"),
+        is_correct=is_correct,
+        topic=q.get("topic", "OSPF"),
+        source=st.session_state.mode
     )
-    q_text = response.choices[0].message['content']
-    st.markdown(f"**GPT Question {st.session_state.question_index+1}:**")
-    st.markdown(q_text)
-    st.warning("👉 GPT question review not interactive yet.")
-else:
-    q = static_pool[st.session_state.question_index % len(static_pool)]
-    qid = q['id']
-    st.markdown(f"### 📘 Topic: {q['topic']}")
-    st.subheader(q['question'])
 
-    opts = q['options']
-    option_keys = list(opts.keys())
-    random.shuffle(option_keys)
-    label_map = {f"{k}: {opts[k]}": k for k in option_keys}
+    if is_correct:
+        st.success("✅ Correct!")
+    else:
+        st.error("❌ Incorrect.")
+    st.markdown(f"**Explanation:** {q['explanation']}")
 
-    user_selection = st.multiselect(
-        "Select answer(s):",
-        options=list(label_map.keys()),
-        key=f"select_{qid}"
-    )
-    user_answer = [label_map[sel] for sel in user_selection]
-
-    if st.button("✅ Submit Answer"):
-        correct = check_answer(user_answer, q['answer'])
-        if correct:
-            st.success("✅ Correct!")
-            st.session_state.score += 1
-        else:
-            st.error(f"❌ Incorrect. Correct answer: {', '.join(q['answer'])}")
-        with st.expander("💡 Explanation"):
-            st.write(get_explanation(q))
-        log_result_supabase(qid, q['topic'], correct, time.time())
-
-        st.session_state.question_index += 1
-        st.rerun()
-
-# --- Score ---
-st.markdown("---")
-st.info(f"Progress: {st.session_state.question_index} questions attempted.")
-st.success(f"✅ Score: {st.session_state.score}")
+# --- Next Button ---
+if st.session_state.answered:
+    if st.button("Next Question"):
+        st.session_state.mode = random.choices(["static", "gpt"], weights=[0.8, 0.2])[0]
+        st.session_state.current_question = None
+        st.session_state.answered = False
