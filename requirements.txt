@@ -1,8 +1,9 @@
+# requirements.txt
+
 streamlit
 pyyaml
 requests
 matplotlib
-openai
+openai>=1.0.0
 pandas
-supabase
-supabase-py
+git+https://github.com/supabase-community/supabase-py.git
