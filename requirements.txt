@@ -6,4 +6,5 @@ requests
 matplotlib
 openai>=1.0.0
 pandas
-git+https://github.com/supabase-community/supabase-py.git
+supabase==2.16.0
+git+https://github.com/supabase-community/supabase-py.gitgit add .
