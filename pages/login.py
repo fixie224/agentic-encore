@@ -1,42 +1,58 @@
 import streamlit as st
-from supabase import create_client, Client
+from supabase import create_client
 import os
-import time
-import sys
 
-# --- Init Supabase ---
+# --- Setup Supabase ---
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 st.set_page_config(page_title="🔐 Login", layout="centered")
-st.title("🔐 Login to Agentic ENCOR")
+st.title("🔐 Login with Email")
 
-# --- Step 1: Request OTP Email ---
-if "otp_sent" not in st.session_state:
-    st.session_state.otp_sent = False
+# --- Step 1: Masukkan emel untuk magic link login ---
+email = st.text_input("📧 Masukkan emel anda")
 
-email = st.text_input("📧 Email", placeholder="you@example.com")
-
-if not st.session_state.otp_sent:
-    if st.button("📨 Send Magic Link"):
-        if not email:
-            st.warning("Please enter your email.")
-        else:
-            try:
-                supabase.auth.sign_in_with_otp({"email": email})
-                st.session_state.otp_sent = True
-                st.success(f"📩 OTP sent to {email}. Please check your email inbox.")
-            except Exception as e:
-                st.error(f"❌ Failed to send OTP: {e}")
-else:
-    # --- Step 2: Confirm login session ---
-    user = supabase.auth.get_user()
-    if user and user.user:
-        st.session_state["user_email"] = user.user.email
-        st.success(f"✅ Logged in as {user.user.email}")
-        st.markdown("Go to the app → [🏠 Home](./app)")
+if st.button("Hantar Magic Link"):
+    if email:
+        try:
+            supabase.auth.sign_in_with_otp({"email": email})
+            st.success("✅ Sila semak emel anda untuk pautan login.")
+        except Exception as e:
+            st.error(f"❌ Gagal hantar link: {e}")
     else:
-        st.info("Waiting for you to click the magic link in your email... 🔄")
-        time.sleep(5)
-        st.experimental_rerun()
+        st.warning("⚠️ Masukkan emel dahulu.")
+
+# --- Step 2: Selepas redirect dari magic link ---
+params = st.query_params
+access_token = params.get("access_token", [None])[0]
+refresh_token = params.get("refresh_token", [None])[0]
+
+if access_token and refresh_token:
+    try:
+        session = supabase.auth.set_session(access_token, refresh_token)
+        user = session.user
+
+        if user and user.email:
+            st.session_state["user_email"] = user.email
+            st.session_state["user_id"] = user.id
+
+            # Insert to user_profiles if not exists
+            try:
+                existing = supabase.table("user_profiles").select("*").eq("user_id", user.id).execute()
+                if not existing.data:
+                    supabase.table("user_profiles").insert({
+                        "user_id": user.id,
+                        "email": user.email,
+                        "is_approved": False
+                    }).execute()
+            except Exception as e:
+                st.error(f"⚠️ Failed to update user_profiles: {e}")
+
+            st.success("✅ Login berjaya!")
+            st.switch_page("app.py")
+
+        else:
+            st.error("⚠️ Login gagal — pengguna tidak sah.")
+    except Exception as e:
+        st.error(f"❌ Session error: {e}")
