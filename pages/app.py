@@ -1,17 +1,26 @@
 import streamlit as st
 import random
 from gpt_generator import generate_encor_question_v1
-from result_logger_supabase import log_result_supabase, init_db
+from result_logger_supabase import log_result_supabase
+from auth import get_current_user
 
-st.set_page_config(page_title="Quiz Mode (Static)", page_icon="📝")
+st.set_page_config(page_title="📝 Static Quiz Mode", page_icon="📝")
 st.title("📝 Static Quiz Mode (350-401 ENCOR)")
 
-if "static_questions" not in st.session_state:
-    st.session_state.static_questions = []
-    st.session_state.current_q_index = 0
-    st.session_state.score = 0
+# --- Authentication Check ---
+user = get_current_user()
+if not user:
+    st.warning("🔐 Sila log masuk untuk akses kuiz.")
+    st.stop()
 
-# Load sample static questions
+if not user.get("is_approved", False):
+    st.warning("⏳ Akaun anda belum diluluskan oleh admin.")
+    st.stop()
+
+# Simpan email user
+st.session_state["user_email"] = user["email"]
+
+# --- Static Question Bank ---
 STATIC_QUESTIONS = [
     {
         "question": "Apakah fungsi protokol OSPF dalam rangkaian?",
@@ -39,15 +48,23 @@ STATIC_QUESTIONS = [
     }
 ]
 
-if not st.session_state.static_questions:
+# --- Session State Initialization ---
+if "static_questions" not in st.session_state:
     st.session_state.static_questions = random.sample(STATIC_QUESTIONS, len(STATIC_QUESTIONS))
+    st.session_state.current_q_index = 0
+    st.session_state.score = 0
 
 current_q = st.session_state.static_questions[st.session_state.current_q_index]
 
+# --- Display Question ---
 st.markdown(f"### ❓ {current_q['question']}")
-selected = st.radio("Pilihan anda:", list(current_q["options"].keys()),
-                    format_func=lambda x: f"{x}: {current_q['options'][x]}")
+selected = st.radio(
+    "Pilihan anda:",
+    list(current_q["options"].keys()),
+    format_func=lambda k: f"{k}: {current_q['options'][k]}"
+)
 
+# --- Submit Answer ---
 if st.button("Submit"):
     correct = selected in current_q["answer"]
     if correct:
@@ -56,7 +73,7 @@ if st.button("Submit"):
     else:
         st.error("❌ Salah")
 
-    st.markdown(f"### Jawapan betul: {', '.join(current_q['answer'])}")
+    st.markdown(f"**✅ Jawapan betul:** {', '.join(current_q['answer'])}")
     st.info(f"💡 {current_q['explanation']}")
 
     # Log to Supabase
@@ -67,14 +84,16 @@ if st.button("Submit"):
         source="static"
     )
 
+    # --- Next Logic ---
     if st.session_state.current_q_index + 1 < len(st.session_state.static_questions):
-        if st.button("Soalan Seterusnya"):
+        if st.button("➡️ Soalan Seterusnya"):
             st.session_state.current_q_index += 1
             st.experimental_rerun()
     else:
-        st.markdown(f"## 🏁 Tamat! Skor anda: {st.session_state.score}/{len(st.session_state.static_questions)}")
-        if st.button("Mula Semula"):
-            st.session_state.static_questions = []
+        st.balloons()
+        st.markdown(f"## 🏁 Tamat! Skor akhir anda: **{st.session_state.score} / {len(st.session_state.static_questions)}**")
+        if st.button("🔁 Mula Semula"):
+            del st.session_state["static_questions"]
             st.session_state.current_q_index = 0
             st.session_state.score = 0
             st.experimental_rerun()

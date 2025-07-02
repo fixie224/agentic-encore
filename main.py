@@ -1,5 +1,10 @@
 import streamlit as st
 
+if "user_email" not in st.session_state:
+    st.warning("⚠️ Anda perlu login untuk akses sistem.")
+    st.page_link("pages/login.py", label="🔐 Pergi ke Login", icon="🔑")
+    st.stop()
+
 st.set_page_config(page_title="Agentic ENCOR Hub", layout="centered")
 st.title("Bantuan Belajar – CCNP 350-401 Hub")
 

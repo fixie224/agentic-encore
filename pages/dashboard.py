@@ -4,12 +4,36 @@ import matplotlib.pyplot as plt
 import datetime
 import sys, os
 
-# Fix import path (if needed when running inside /pages)
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from admin import is_admin
+from auth import is_user_approved
 from result_logger_supabase import get_topic_summary_supabase
 
 # --- CONFIG ---
 st.set_page_config(page_title="📊 Performance Dashboard", layout="centered")
+
+# --- Access Control ---
+if "user_email" not in st.session_state:
+    st.warning("⚠️ Anda perlu login untuk akses halaman ini.")
+    st.page_link("pages/login.py", label="🔐 Pergi ke Login", icon="🔑")
+    st.stop()
+
+email = st.session_state["user_email"]
+
+if not is_user_approved(email):
+    st.error("🚫 Akaun belum diluluskan. Sila tunggu kelulusan admin.")
+    st.stop()
+
+# --- Sidebar User Info ---
+with st.sidebar:
+    st.markdown(f"👤 **{email}**")
+    if is_admin(email):
+        st.info("🛠️ Anda ialah admin")
+    if st.button("🚪 Logout"):
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        st.rerun()
+
+# --- Page Content ---
 st.title("📊 ENCOR Quiz Performance Dashboard")
 
 # --- Date Filter ---
@@ -24,8 +48,17 @@ def filter_summary(data):
     return [row for row in data if datetime.datetime.fromisoformat(row['timestamp']) >= cutoff]
 
 # --- Load + Filter ---
+# --- Load All Raw and Filter ---
 raw = get_topic_summary_supabase(raw=True)
 data = filter_summary(raw)
+
+# --- Build filtered summary only from filtered data ---
+df = pd.DataFrame(data)
+summary = df.groupby("topic").agg(
+    total=("is_correct", "count"),
+    correct=("is_correct", "sum")
+).reset_index()
+summary["Accuracy (%)"] = (summary["correct"] / summary["total"] * 100).round(1)
 
 if not data:
     st.warning("⚠️ No data available for selected range. Try taking more quizzes.")
