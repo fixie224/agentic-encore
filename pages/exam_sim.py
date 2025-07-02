@@ -64,8 +64,8 @@ if st.button("✅ Submit Exam"):
         else:
             st.error(f"❌ Q{qid}: Incorrect — Correct: {', '.join(q['answer'])}")
 
-        # Log result
-        log_result_supabase(qid, q['topic'], correct, elapsed)
+        # ✅ Log result
+        log_result_supabase(question_id=qid, topic=q['topic'], is_correct=correct, source="exam_sim")
 
         with st.expander("💡 Explanation"):
             st.write(get_explanation(q))
