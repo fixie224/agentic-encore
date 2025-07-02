@@ -7,4 +7,4 @@ matplotlib
 openai>=1.0.0
 pandas
 supabase==2.16.0
-git+https://github.com/supabase-community/supabase-py.gitgit add .
+git+https://github.com/supabase-community/supabase-py.git
