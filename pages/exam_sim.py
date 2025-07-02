@@ -9,6 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from question_bank import load_questions
 from quiz_logic import check_answer, get_explanation
 from result_logger_supabase import log_result_supabase
+from gpt_generator import generate_gpt_question
 
 st.set_page_config(page_title='🧪 Exam Simulation', layout='centered')
 st.title("🧪 CCNP ENCOR Exam Simulation")
