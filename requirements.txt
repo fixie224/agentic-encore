@@ -1,6 +1,7 @@
 streamlit
 pyyaml
-streamlit
 requests
-pyyaml
 matplotlib
+openai
+pandas
+supabase

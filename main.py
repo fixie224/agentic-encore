@@ -18,9 +18,6 @@ with col1:
     if st.button("🧠 Flashcard Mode"):
         st.switch_page("pages/flashcard_mode.py")
 
-    if st.button("🧬 GPT Quiz Only"):
-        st.switch_page("pages/gpt_mode_only.py")
-
 with col2:
     if st.button("🔎 Review Incorrect Questions"):
         st.switch_page("pages/review_mode.py")
@@ -31,8 +28,21 @@ with col2:
     if st.button("🔬 Lab Simulation"):
         st.switch_page("pages/lab_sim.py")
 
-    if st.button("⚡ Mixed Mode (80% static + 20% GPT)"):
+st.markdown("---")
+st.markdown("### 🤖 GPT-Integrated Modes")
+
+col3, col4 = st.columns(2)
+
+with col3:
+    if st.button("⚡ Mixed Mode (80% Static + 20% GPT)"):
         st.switch_page("pages/mixed_mode.py")
 
+    if st.button("🤖 GPT Mode Only"):
+        st.switch_page("pages/gpt_mode_only.py")
+
+with col4:
+    if st.button("📦 GPT + Supabase Log"):
+        st.switch_page("pages/gpt_quiz_mode.py")
+
 st.markdown("---")
-st.markdown("🤖 Powered by 👨‍💻 Developed by Fizi")
+st.markdown("👨‍💻 Built by Fizi ")
