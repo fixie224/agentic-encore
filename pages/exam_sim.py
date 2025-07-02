@@ -18,14 +18,19 @@ questions = load_questions()
 random.shuffle(questions)
 
 # --- Timer start ---
-start_time = time.time()
-st.info("⏱️ Timer started. Try to complete all questions!")
+if 'exam_start_time' not in st.session_state:
+    st.session_state.exam_start_time = time.time()
 
-# --- Session state ---
+# --- Session state for answers ---
 if 'exam_answers' not in st.session_state:
     st.session_state.exam_answers = {}
 
 score = 0
+
+# --- Handler function ---
+def handle_selection(qid, selection, label_map):
+    selected_keys = [label_map[s] for s in selection if s in label_map]
+    st.session_state.exam_answers[qid] = selected_keys
 
 # --- Loop through questions ---
 for q in questions:
@@ -38,19 +43,27 @@ for q in questions:
     random.shuffle(keys)
     label_map = {f"{k}: {opts[k]}": k for k in keys}
 
+    key_name = f"exam_{qid}"
+    default_labels = []
+
+    # Restore default from session
+    if qid in st.session_state.exam_answers:
+        default_labels = [f"{k}: {opts[k]}" for k in st.session_state.exam_answers[qid] if k in opts]
+
     selection = st.multiselect(
         f"Choose your answer (QID: {qid})",
-        list(label_map.keys()),
-        key=f"exam_{qid}"
+        options=list(label_map.keys()),
+        default=default_labels,
+        key=key_name,
+        on_change=lambda qid=qid, label_map=label_map: handle_selection(
+            qid, st.session_state.get(f"exam_{qid}", []), label_map
+        )
     )
-
-    user_ans = [label_map[s] for s in selection]
-    st.session_state.exam_answers[qid] = user_ans
 
 # --- Submit Exam ---
 if st.button("✅ Submit Exam"):
     end_time = time.time()
-    elapsed = end_time - start_time
+    elapsed = end_time - st.session_state.exam_start_time
     st.success(f"⏱️ Exam completed in {elapsed/60:.2f} minutes")
 
     for q in questions:
@@ -63,7 +76,7 @@ if st.button("✅ Submit Exam"):
         else:
             st.error(f"❌ Q{qid}: Incorrect — Correct: {', '.join(q['answer'])}")
 
-        # ✅ Log result
+        # Log result
         log_result_supabase(question_id=qid, topic=q['topic'], is_correct=correct, source="exam_sim")
 
         with st.expander("💡 Explanation"):
