@@ -1,6 +1,26 @@
-# main.py (root)
 import streamlit as st
 from auth import get_current_user, ensure_user_in_profiles, is_user_approved
+from supabase import create_client
+
+# --- Supabase Client ---
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# --- Catch access_token from redirect ---
+params = st.query_params
+access_token = params.get("access_token", [None])[0]
+refresh_token = params.get("refresh_token", [None])[0]
+
+if access_token and refresh_token:
+    try:
+        session = supabase.auth.set_session(access_token, refresh_token)
+        user = session.user
+        if user:
+            st.session_state["user_email"] = user.email
+            st.session_state["user_id"] = user.id
+    except Exception as e:
+        st.error(f"Gagal set session: {e}")
 
 # --- Page config ---
 st.set_page_config(page_title="Agentic ENCOR Hub", layout="centered")
@@ -18,48 +38,4 @@ else:
     st.page_link("pages/login.py", label="🔐 Pergi ke Login", icon="🔑")
     st.stop()
 
-# --- Main Page ---
-st.title("Bantuan Belajar – CCNP 350-401 Hub")
-st.markdown("---")
-st.markdown("### 🚀 Choose a Mode:")
-
-col1, col2 = st.columns(2)
-
-with col1:
-    if st.button("📝 Quiz Mode (Static)"):
-        st.switch_page("pages/app.py")
-
-    if st.button("🧪 Exam Simulation"):
-        st.switch_page("pages/exam_sim.py")
-
-    if st.button("🧠 Flashcard Mode"):
-        st.switch_page("pages/flashcard_mode.py")
-
-with col2:
-    if st.button("🔎 Review Incorrect Questions"):
-        st.switch_page("pages/review_mode.py")
-
-    if st.button("📊 Dashboard & Analytics"):
-        st.switch_page("pages/dashboard.py")
-
-    if st.button("🔬 Lab Simulation"):
-        st.switch_page("pages/lab_sim.py")
-
-st.markdown("---")
-st.markdown("### 🤖 GPT-Integrated Modes")
-
-col3, col4 = st.columns(2)
-
-with col3:
-    if st.button("⚡ Mixed Mode (80% Static + 20% GPT)"):
-        st.switch_page("pages/mixed_mode.py")
-
-    if st.button("🤖 GPT Mode Only"):
-        st.switch_page("pages/gpt_mode_only.py")
-
-with col4:
-    if st.button("📦 GPT + Supabase Log"):
-        st.switch_page("pages/gpt_quiz_mode.py")
-
-st.markdown("---")
-st.markdown("👨‍💻 Built by Fizi")
+# --- Main Page (UI seperti biasa)...git add main.py
