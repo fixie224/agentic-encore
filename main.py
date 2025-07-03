@@ -1,13 +1,25 @@
+# main.py (root)
 import streamlit as st
+from auth import get_current_user, ensure_user_in_profiles, is_user_approved
 
-if "user_email" not in st.session_state:
+# --- Page config ---
+st.set_page_config(page_title="Agentic ENCOR Hub", layout="centered")
+
+# --- Supabase Auth Check ---
+user = get_current_user()
+if user:
+    st.session_state["user_email"] = user.email
+    ensure_user_in_profiles(user)
+    if not is_user_approved(user.email):
+        st.warning("⏳ Akaun belum diluluskan. Sila tunggu admin.")
+        st.stop()
+else:
     st.warning("⚠️ Anda perlu login untuk akses sistem.")
     st.page_link("pages/login.py", label="🔐 Pergi ke Login", icon="🔑")
     st.stop()
 
-st.set_page_config(page_title="Agentic ENCOR Hub", layout="centered")
+# --- Main Page ---
 st.title("Bantuan Belajar – CCNP 350-401 Hub")
-
 st.markdown("---")
 st.markdown("### 🚀 Choose a Mode:")
 
@@ -50,4 +62,4 @@ with col4:
         st.switch_page("pages/gpt_quiz_mode.py")
 
 st.markdown("---")
-st.markdown("👨‍💻 Built by Fizi ")
+st.markdown("👨‍💻 Built by Fizi")

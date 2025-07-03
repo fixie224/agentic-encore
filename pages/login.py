@@ -30,6 +30,7 @@ refresh_token = params.get("refresh_token", [None])[0]
 
 if access_token and refresh_token:
     try:
+        # Set the Supabase session
         session = supabase.auth.set_session(access_token, refresh_token)
         user = session.user
 
@@ -38,20 +39,17 @@ if access_token and refresh_token:
             st.session_state["user_id"] = user.id
 
             # Insert to user_profiles if not exists
-            try:
-                existing = supabase.table("user_profiles").select("*").eq("user_id", user.id).execute()
-                if not existing.data:
-                    supabase.table("user_profiles").insert({
-                        "user_id": user.id,
-                        "email": user.email,
-                        "is_approved": False
-                    }).execute()
-            except Exception as e:
-                st.error(f"⚠️ Failed to update user_profiles: {e}")
+            existing = supabase.table("user_profiles").select("*").eq("user_id", user.id).execute()
+            if not existing.data:
+                supabase.table("user_profiles").insert({
+                    "user_id": user.id,
+                    "email": user.email,
+                    "is_approved": False,
+                    "is_admin": False
+                }).execute()
 
             st.success("✅ Login berjaya!")
-            st.switch_page("app.py")
-
+            st.switch_page("main.py")  # Redirect ke halaman utama
         else:
             st.error("⚠️ Login gagal — pengguna tidak sah.")
     except Exception as e:
